@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from 'fs'
-import { getMnemoDir, getKnowledgeDir, getLanceDir, readConfig, assertMnemoInit } from '../config.js'
+import { getMnemoDir, getLanceDir, readConfig, assertMnemoInit } from '../config.js'
 import { openDb, listItems } from '../db/sqlite.js'
 import { rebuildTable } from '../db/lancedb.js'
 import { embedText, chunkText } from '../ingest/embed.js'

@@ -1,6 +1,6 @@
 import { getMnemoDir, readConfig, updateConfig, assertMnemoInit } from '../config.js'
 import { print, success, failure } from '../utils/output.js'
-import { isTTY, ok, dim, kv, section, line } from '../utils/fmt.js'
+import { isTTY, ok, kv, section, line } from '../utils/fmt.js'
 
 export async function runConfigSet(key: string, value: string): Promise<void> {
   const mnemoDir = getMnemoDir()

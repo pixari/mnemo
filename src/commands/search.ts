@@ -3,7 +3,7 @@ import { openDb, getItem, listStaleItems } from '../db/sqlite.js'
 import { searchVectors } from '../db/lancedb.js'
 import { embedQuery } from '../ingest/embed.js'
 import { print, success, failure } from '../utils/output.js'
-import { isTTY, bold, dim, warn, line, accent } from '../utils/fmt.js'
+import { isTTY, bold, dim, warn, line } from '../utils/fmt.js'
 
 interface SearchOptions {
   limit: string

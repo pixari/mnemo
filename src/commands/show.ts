@@ -2,7 +2,7 @@ import { readFileSync, existsSync } from 'fs'
 import { getMnemoDir, assertMnemoInit } from '../config.js'
 import { openDb, getItem, listStaleItems } from '../db/sqlite.js'
 import { print, success, failure } from '../utils/output.js'
-import { isTTY, bold, dim, warn, kv, section, line } from '../utils/fmt.js'
+import { isTTY, warn, kv, section, line } from '../utils/fmt.js'
 
 export async function runShow(id: string): Promise<void> {
   const mnemoDir = getMnemoDir()

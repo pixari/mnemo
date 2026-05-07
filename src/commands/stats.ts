@@ -4,7 +4,7 @@ import { getMnemoDir, getLanceDir, assertMnemoInit } from '../config.js'
 import { openDb, listItems, listStaleItems } from '../db/sqlite.js'
 import { countVectors } from '../db/lancedb.js'
 import { print, success } from '../utils/output.js'
-import { isTTY, bold, dim, kv, section, line } from '../utils/fmt.js'
+import { isTTY, kv, section, line } from '../utils/fmt.js'
 
 export async function runStats(): Promise<void> {
   const mnemoDir = getMnemoDir()
