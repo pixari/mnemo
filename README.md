@@ -10,7 +10,9 @@
 
 </div>
 
-> **Alpha software.** mnemo is in early development. Expect rough edges, breaking changes, and missing features. Feedback and contributions are very welcome.
+> **Early stage.** mnemo is new and evolving fast. Rough edges exist, things may change. If something breaks or feels off, please open an issue — that's exactly the kind of feedback that helps.
+
+> **Early stage.** mnemo is new and evolving fast. Rough edges exist, things may change. If something breaks or feels off, please open an issue — that's exactly the kind of feedback that helps.
 
 ---
 
