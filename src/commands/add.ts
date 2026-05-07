@@ -14,9 +14,11 @@ export async function runAdd(input: string, opts: AddOptions): Promise<void> {
   assertMnemoInit(mnemoDir)
 
   if (/^https?:\/\//i.test(input)) {
-    const msg = `mnemo does not fetch URLs directly.\nHave Claude Code read the URL and call: mnemo add "<extracted insight>"`
-    process.stderr.write(`Error: ${msg}\n`)
-    print(failure(msg))
+    if (isTTY()) {
+      process.stderr.write(`Use the slash command instead: /mnemo-url ${input}\n`)
+    } else {
+      print(failure(`Use the /mnemo-url slash command to ingest URLs. mnemo add only accepts plain text.`))
+    }
     return
   }
 

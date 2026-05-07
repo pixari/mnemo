@@ -5,6 +5,19 @@ import { openDb } from '../db/sqlite.js'
 import { print, success, failure } from '../utils/output.js'
 import { isTTY, ok, bold, dim, line } from '../utils/fmt.js'
 
+const MNEMO_URL_COMMAND = `# Add a URL to the mnemo knowledge base
+
+Fetch the URL provided in $ARGUMENTS, extract the key knowledge, and add it to mnemo.
+
+Steps:
+1. Fetch the page at $ARGUMENTS using WebFetch
+2. Identify the most useful knowledge: decisions, patterns, API behaviors, constraints, concepts
+3. Write a concise, distilled summary (not a raw dump) — focus on what a developer would need to recall
+4. Choose a short descriptive title
+5. Run: \`mnemo add "<distilled content>" --title "<title>"\`
+6. Confirm what was added and why it is useful
+`
+
 const MNEMO_BLOCK = `
 <!-- mnemo:start — do not edit this block manually -->
 ## mnemo — Project Knowledge
@@ -66,6 +79,7 @@ export async function runInit(): Promise<void> {
 
   updateGitignore(cwd)
   updateClaudeMd(cwd)
+  installSlashCommands(cwd)
 
   if (isTTY()) {
     line()
@@ -99,6 +113,15 @@ function updateGitignore(cwd: string): void {
     }
   } else {
     writeFileSync(path, `${GITIGNORE_LINE}\n`)
+  }
+}
+
+function installSlashCommands(cwd: string): void {
+  const commandsDir = join(cwd, '.claude', 'commands')
+  mkdirSync(commandsDir, { recursive: true })
+  const dest = join(commandsDir, 'mnemo-url.md')
+  if (!existsSync(dest)) {
+    writeFileSync(dest, MNEMO_URL_COMMAND)
   }
 }
 
