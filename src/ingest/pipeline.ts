@@ -5,6 +5,7 @@ import { sha256 } from '../utils/hash.js'
 import { openDb, insertItem } from '../db/sqlite.js'
 import { upsertVectors } from '../db/lancedb.js'
 import { embedText, chunkText } from './embed.js'
+import { fetchUrl } from './url.js'
 import { getKnowledgeDir, getLanceDir, type Config } from '../config.js'
 import type { SourceType } from '../db/sqlite.js'
 
@@ -32,6 +33,19 @@ export async function ingestText(
   if (!content) throw new Error('Content cannot be empty')
   const title = opts.title ?? content.split('\n')[0].replace(/^#\s*/, '').slice(0, 80)
   return ingestContent(mnemoDir, db, config, content, title, 'text', null, opts)
+}
+
+export async function ingestUrl(
+  mnemoDir: string,
+  db: ReturnType<typeof openDb>,
+  config: Config,
+  url: string,
+  opts: IngestOptions = {}
+): Promise<IngestResult> {
+  const { content, title: fetchedTitle } = await fetchUrl(url)
+  const title = opts.title ?? fetchedTitle
+  const staleDays = opts.staleDays !== undefined ? opts.staleDays : config.staleDays
+  return ingestContent(mnemoDir, db, config, content, title, 'url', url, { ...opts, staleDays })
 }
 
 export async function ingestRawFile(

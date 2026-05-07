@@ -42,10 +42,10 @@ program
 // Ingestion commands
 program
   .command('add <input>')
-  .description('Add knowledge: plain text, file path, or URL')
+  .description('Add knowledge: plain text or URL')
   .option('--title <title>', 'Custom title')
   .option('--tags <tags>', 'Comma-separated tags')
-  .option('--stale-days <n>', 'Days before URL content is considered stale', '30')
+  .option('--stale-days <n>', 'Days before URL content is considered stale (URLs only)')
   .action(async (input, opts) => {
     const { runAdd } = await import('./commands/add.js')
     await runAdd(input, opts)
