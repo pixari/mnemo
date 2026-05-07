@@ -1,2 +1,14 @@
 npm run typecheck
 npm run lint
+
+# Block sensitive files
+if git diff --cached --name-only | grep -qE '\.(env|pem|key|p12|pfx|secret)$|^\.env'; then
+  echo "Error: attempting to commit a sensitive file. Remove it from staging and add it to .gitignore."
+  exit 1
+fi
+
+# Block secrets in content
+if git diff --cached | grep -qE '(password|secret|api_key|apikey|token|private_key)\s*=\s*["\x27][^"\x27]{8,}'; then
+  echo "Error: potential secret detected in staged changes. Review before committing."
+  exit 1
+fi
