@@ -1,6 +1,7 @@
 import { getMnemoDir, assertMnemoInit } from '../config.js'
 import { openDb, listItems, listStaleItems } from '../db/sqlite.js'
 import { print, success } from '../utils/output.js'
+import { isTTY, bold, dim, warn, line } from '../utils/fmt.js'
 
 interface ListOptions {
   staleOnly?: boolean
@@ -24,5 +25,24 @@ export async function runList(opts: ListOptions): Promise<void> {
     stale: staleIds.has(item.id),
   }))
 
-  print(success({ total: items.length, items }))
+  if (isTTY()) {
+    if (items.length === 0) {
+      line()
+      line(dim('No items yet. Run: mnemo add "your knowledge"'))
+      line()
+      return
+    }
+    line()
+    for (const item of items) {
+      const staleTag = item.stale ? ` ${warn('[STALE]')}` : ''
+      const tags = item.tags.length ? dim(` [${item.tags.join(', ')}]`) : ''
+      line(`${bold(item.title)}${staleTag}${tags}`)
+      line(dim(`  ${item.id}  ·  ${item.source_type}  ·  ${item.ingested_at.slice(0, 10)}`))
+    }
+    line()
+    line(dim(`${items.length} item${items.length === 1 ? '' : 's'}`))
+    line()
+  } else {
+    print(success({ total: items.length, items }))
+  }
 }

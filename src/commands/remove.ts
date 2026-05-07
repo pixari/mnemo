@@ -1,11 +1,23 @@
 import { unlinkSync, existsSync } from 'fs'
+import { createInterface } from 'readline'
 import { getMnemoDir, getLanceDir, assertMnemoInit } from '../config.js'
 import { openDb, getItem, deleteItem } from '../db/sqlite.js'
 import { deleteVectorsBySourceId } from '../db/lancedb.js'
 import { print, success, failure } from '../utils/output.js'
+import { isTTY, ok, dim, line } from '../utils/fmt.js'
 
 interface RemoveOptions {
   force?: boolean
+}
+
+function confirm(question: string): Promise<boolean> {
+  return new Promise(resolve => {
+    const rl = createInterface({ input: process.stdin, output: process.stdout })
+    rl.question(question, answer => {
+      rl.close()
+      resolve(answer.toLowerCase() === 'y')
+    })
+  })
 }
 
 export async function runRemove(id: string, opts: RemoveOptions): Promise<void> {
@@ -17,21 +29,23 @@ export async function runRemove(id: string, opts: RemoveOptions): Promise<void> 
 
   if (!item) {
     db.close()
-    print(failure(`Item not found: ${id}`))
+    if (isTTY()) {
+      line(`Item not found: ${id}`)
+    } else {
+      print(failure(`Item not found: ${id}`))
+    }
     return
   }
 
   if (!opts.force) {
-    const { default: inquirer } = await import('inquirer')
-    const { confirmed } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'confirmed',
-      message: `Remove "${item.title}" (${id})?`,
-      default: false,
-    }])
+    const confirmed = await confirm(`Remove "${item.title}" (${id})? [y/N] `)
     if (!confirmed) {
       db.close()
-      print(success({ removed: false, message: 'Cancelled' }))
+      if (isTTY()) {
+        line(dim('Cancelled.'))
+      } else {
+        print(success({ removed: false, message: 'Cancelled' }))
+      }
       return
     }
   }
@@ -45,5 +59,12 @@ export async function runRemove(id: string, opts: RemoveOptions): Promise<void> 
     try { unlinkSync(item.file_path) } catch { /* best-effort */ }
   }
 
-  print(success({ removed: true, id, title: item.title }))
+  if (isTTY()) {
+    line()
+    line(ok(`Removed: ${item.title}`))
+    line(dim(`  id: ${id}`))
+    line()
+  } else {
+    print(success({ removed: true, id, title: item.title }))
+  }
 }

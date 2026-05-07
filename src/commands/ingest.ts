@@ -4,6 +4,7 @@ import { getMnemoDir, getRawDir, readConfig, assertMnemoInit } from '../config.j
 import { openDb } from '../db/sqlite.js'
 import { ingestRawFile } from '../ingest/pipeline.js'
 import { print, success } from '../utils/output.js'
+import { isTTY, ok, err, dim, line } from '../utils/fmt.js'
 
 interface IngestOptions {
   dryRun?: boolean
@@ -19,34 +20,47 @@ export async function runIngest(opts: IngestOptions): Promise<void> {
   const addedDir = join(rawDir, 'added')
 
   if (!existsSync(rawDir)) {
-    print(success({ processed: 0, failed: 0, skipped: 0, message: 'Raw directory is empty' }))
+    if (isTTY()) {
+      line(dim('Raw directory is empty.'))
+    } else {
+      print(success({ processed: 0, failed: 0, skipped: 0, message: 'Raw directory is empty' }))
+    }
     return
   }
 
-  const entries = readdirSync(rawDir).filter(f => {
-    const ext = extname(f).toLowerCase()
-    return SUPPORTED.has(ext)
-  })
+  const entries = readdirSync(rawDir).filter(f => SUPPORTED.has(extname(f).toLowerCase()))
 
   if (entries.length === 0) {
-    print(success({
-      processed: 0,
-      failed: 0,
-      skipped: 0,
-      message: 'No supported files found in .mnemo/raw/ (.md, .txt)',
-      hint: 'For other formats, have Claude Code read the file and call: mnemo add "<content>"',
-    }))
+    if (isTTY()) {
+      line()
+      line(dim('No supported files found in .mnemo/raw/ (.md, .txt)'))
+      line(dim('For other formats, have Claude Code read the file and call: mnemo add "<content>"'))
+      line()
+    } else {
+      print(success({
+        processed: 0, failed: 0, skipped: 0,
+        message: 'No supported files in .mnemo/raw/',
+        hint: 'For other formats, have Claude Code read and call: mnemo add "<content>"',
+      }))
+    }
     return
   }
 
   if (opts.dryRun) {
-    print(success({ dry_run: true, would_process: entries }))
+    if (isTTY()) {
+      line()
+      line(dim(`Would process ${entries.length} file${entries.length === 1 ? '' : 's'}:`))
+      entries.forEach(f => line(`  ${f}`))
+      line()
+    } else {
+      print(success({ dry_run: true, would_process: entries }))
+    }
     return
   }
 
   const db = openDb(mnemoDir)
   const config = readConfig(mnemoDir)
-  const results: Array<{ file: string; id: string; title: string; chunks: number }> = []
+  const results: Array<{ file: string; id: string; title: string }> = []
   const errors: Array<{ file: string; error: string }> = []
 
   for (const file of entries) {
@@ -54,14 +68,23 @@ export async function runIngest(opts: IngestOptions): Promise<void> {
     try {
       const result = await ingestRawFile(mnemoDir, db, config, filePath)
       renameSync(filePath, join(addedDir, file))
-      results.push({ file, id: result.id, title: result.title, chunks: result.chunks })
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      process.stderr.write(`Error processing ${file}: ${msg}\n`)
+      results.push({ file, id: result.id, title: result.title })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
       errors.push({ file, error: msg })
     }
   }
 
   db.close()
-  print(success({ processed: results.length, failed: errors.length, items: results, errors }))
+
+  if (isTTY()) {
+    line()
+    for (const r of results) line(ok(`${r.file}  ${dim(`→ ${r.title}`)}`))
+    for (const e of errors) line(err(`${e.file}  ${e.error}`))
+    line()
+    line(dim(`${results.length} processed, ${errors.length} failed`))
+    line()
+  } else {
+    print(success({ processed: results.length, failed: errors.length, items: results, errors }))
+  }
 }

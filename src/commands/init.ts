@@ -3,6 +3,7 @@ import { join, resolve } from 'path'
 import { writeConfig, type Config } from '../config.js'
 import { openDb } from '../db/sqlite.js'
 import { print, success, failure } from '../utils/output.js'
+import { isTTY, ok, bold, dim, line } from '../utils/fmt.js'
 
 const MNEMO_BLOCK = `
 <!-- mnemo:start — do not edit this block manually -->
@@ -46,7 +47,11 @@ export async function runInit(): Promise<void> {
   const mnemoDir = resolve(cwd, '.mnemo')
 
   if (existsSync(mnemoDir)) {
-    print(failure('mnemo is already initialized in this directory. Run `mnemo doctor` to check its health.'))
+    if (isTTY()) {
+      line('mnemo is already initialized here. Run: mnemo doctor')
+    } else {
+      print(failure('mnemo is already initialized in this directory. Run `mnemo doctor` to check its health.'))
+    }
     return
   }
 
@@ -62,16 +67,27 @@ export async function runInit(): Promise<void> {
   updateGitignore(cwd)
   updateClaudeMd(cwd)
 
-  print(success({
-    message: 'mnemo initialized successfully',
-    directory: mnemoDir,
-    next_steps: [
-      'Drop files into .mnemo/raw/ and run: mnemo ingest',
-      'Or add knowledge directly: mnemo add "your knowledge here"',
-      'Search: mnemo search "your query"',
-      'Check health: mnemo doctor',
-    ],
-  }))
+  if (isTTY()) {
+    line()
+    line(ok(bold('mnemo initialized')))
+    line()
+    line(dim('  Next steps:'))
+    line(`  mnemo add ${dim('"your knowledge here"')}`)
+    line(`  mnemo search ${dim('"your query"')}`)
+    line(`  mnemo doctor`)
+    line()
+  } else {
+    print(success({
+      message: 'mnemo initialized successfully',
+      directory: mnemoDir,
+      next_steps: [
+        'Drop files into .mnemo/raw/ and run: mnemo ingest',
+        'Or add knowledge directly: mnemo add "your knowledge here"',
+        'Search: mnemo search "your query"',
+        'Check health: mnemo doctor',
+      ],
+    }))
+  }
 }
 
 function updateGitignore(cwd: string): void {

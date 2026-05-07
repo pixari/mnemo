@@ -21,41 +21,48 @@ async function getConnection(lanceDir: string): Promise<Connection> {
   return _connection
 }
 
-async function getTable(lanceDir: string): Promise<Table<VectorRecord>> {
+async function openTable(lanceDir: string): Promise<Table<VectorRecord> | null> {
   if (_table) return _table
   const conn = await getConnection(lanceDir)
   const tables = await conn.tableNames()
   if (tables.includes('items')) {
     _table = (await conn.openTable('items')) as Table<VectorRecord>
-  } else {
-    _table = (await conn.createTable('items', [])) as Table<VectorRecord>
+    return _table
   }
-  return _table
+  return null
 }
 
 export async function upsertVectors(lanceDir: string, records: VectorRecord[]): Promise<void> {
   if (records.length === 0) return
-  const table = await getTable(lanceDir)
+  const conn = await getConnection(lanceDir)
 
-  const existingIds = records.map(r => r.id)
-  if (existingIds.length > 0) {
-    try {
-      const filter = existingIds.map(id => `id = '${id}'`).join(' OR ')
-      await table.delete(filter)
-    } catch {
-      // table may be empty — ignore
+  if (!_table) {
+    const tables = await conn.tableNames()
+    if (tables.includes('items')) {
+      _table = (await conn.openTable('items')) as Table<VectorRecord>
+    } else {
+      _table = (await conn.createTable('items', records)) as Table<VectorRecord>
+      return
     }
   }
 
-  await table.add(records)
+  try {
+    const filter = records.map(r => `id = '${r.id}'`).join(' OR ')
+    await _table.delete(filter)
+  } catch {
+    // table may be empty — ignore
+  }
+
+  await _table.add(records)
 }
 
 export async function deleteVectorsBySourceId(lanceDir: string, sourceId: string): Promise<void> {
   try {
-    const table = await getTable(lanceDir)
+    const table = await openTable(lanceDir)
+    if (!table) return
     await table.delete(`source_id = '${sourceId}'`)
   } catch {
-    // table may not exist yet
+    // ignore
   }
 }
 
@@ -65,7 +72,8 @@ export async function searchVectors(
   limit: number
 ): Promise<Array<{ source_id: string; content_chunk: string; score: number }>> {
   try {
-    const table = await getTable(lanceDir)
+    const table = await openTable(lanceDir)
+    if (!table) return []
     const results = await table.search(queryEmbedding).limit(limit * 3).execute()
     const seen = new Set<string>()
     const deduped: Array<{ source_id: string; content_chunk: string; score: number }> = []
@@ -90,7 +98,8 @@ export async function searchVectors(
 export async function deleteAllVectorsBySourceId(lanceDir: string, ids: string[]): Promise<void> {
   if (ids.length === 0) return
   try {
-    const table = await getTable(lanceDir)
+    const table = await openTable(lanceDir)
+    if (!table) return
     const filter = ids.map(id => `source_id = '${id}'`).join(' OR ')
     await table.delete(filter)
   } catch {
@@ -100,7 +109,8 @@ export async function deleteAllVectorsBySourceId(lanceDir: string, ids: string[]
 
 export async function countVectors(lanceDir: string): Promise<number> {
   try {
-    const table = await getTable(lanceDir)
+    const table = await openTable(lanceDir)
+    if (!table) return 0
     const all = await table.search(new Array(384).fill(0)).limit(100_000).execute()
     return all.length
   } catch {
@@ -117,7 +127,5 @@ export async function rebuildTable(lanceDir: string, records: VectorRecord[]): P
   _table = null
   if (records.length > 0) {
     _table = (await conn.createTable('items', records)) as Table<VectorRecord>
-  } else {
-    _table = (await conn.createTable('items', [])) as Table<VectorRecord>
   }
 }
