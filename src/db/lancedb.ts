@@ -10,8 +10,12 @@ export interface VectorRecord {
   embedding: number[]
 }
 
+// vectordb types Table<T> where T is the embedding element type (number[]),
+// not the record shape — use unknown to avoid the mismatch.
+type AnyTable = Table<unknown>
+
 let _connection: Connection | null = null
-let _table: Table<VectorRecord> | null = null
+let _table: AnyTable | null = null
 
 async function getConnection(lanceDir: string): Promise<Connection> {
   if (!_connection) {
@@ -21,12 +25,12 @@ async function getConnection(lanceDir: string): Promise<Connection> {
   return _connection
 }
 
-async function openTable(lanceDir: string): Promise<Table<VectorRecord> | null> {
+async function openTable(lanceDir: string): Promise<AnyTable | null> {
   if (_table) return _table
   const conn = await getConnection(lanceDir)
   const tables = await conn.tableNames()
   if (tables.includes('items')) {
-    _table = (await conn.openTable('items')) as Table<VectorRecord>
+    _table = (await conn.openTable('items')) as unknown as AnyTable
     return _table
   }
   return null
@@ -39,9 +43,9 @@ export async function upsertVectors(lanceDir: string, records: VectorRecord[]): 
   if (!_table) {
     const tables = await conn.tableNames()
     if (tables.includes('items')) {
-      _table = (await conn.openTable('items')) as Table<VectorRecord>
+      _table = (await conn.openTable('items')) as unknown as AnyTable
     } else {
-      _table = (await conn.createTable('items', records)) as Table<VectorRecord>
+      _table = (await conn.createTable('items', records)) as unknown as AnyTable
       return
     }
   }
@@ -126,6 +130,6 @@ export async function rebuildTable(lanceDir: string, records: VectorRecord[]): P
   }
   _table = null
   if (records.length > 0) {
-    _table = (await conn.createTable('items', records)) as Table<VectorRecord>
+    _table = (await conn.createTable('items', records)) as unknown as AnyTable
   }
 }
