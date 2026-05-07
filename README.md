@@ -10,6 +10,8 @@
 
 </div>
 
+> **Alpha software.** mnemo is in early development. Expect rough edges, breaking changes, and missing features. Feedback and contributions are very welcome.
+
 ---
 
 AI tools like Claude Code are powerful, but stateless. Every session starts cold. Architectural decisions, discovered constraints, API quirks, and hard-won lessons are either lost or have to be re-explained from scratch.
