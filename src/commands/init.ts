@@ -5,17 +5,15 @@ import { openDb } from '../db/sqlite.js'
 import { print, success, failure } from '../utils/output.js'
 import { isTTY, ok, bold, dim, line } from '../utils/fmt.js'
 
-const MNEMO_URL_COMMAND = `# Add a URL to the mnemo knowledge base
+const MNEMO_ADD_COMMAND = `# Add anything to the mnemo knowledge base
 
-Fetch the URL provided in $ARGUMENTS, extract the key knowledge, and add it to mnemo.
+Given $ARGUMENTS (plain text, a URL, or a file path), capture the key knowledge into mnemo.
 
-Steps:
-1. Fetch the page at $ARGUMENTS using WebFetch
-2. Identify the most useful knowledge: decisions, patterns, API behaviors, constraints, concepts
-3. Write a concise, distilled summary (not a raw dump) — focus on what a developer would need to recall
-4. Choose a short descriptive title
-5. Run: \`mnemo add "<distilled content>" --title "<title>"\`
-6. Confirm what was added and why it is useful
+- Plain text → run: \`mnemo add "$ARGUMENTS"\`
+- URL → fetch the page, distill the key knowledge, run: \`mnemo add "<distilled content>" --title "<page title>"\`
+- File path → read the file, distill the key knowledge, run: \`mnemo add "<distilled content>" --title "<filename>"\`
+
+For URLs and files: do not dump raw content. Extract what a developer would need to recall — decisions, patterns, constraints, API behaviors, gotchas.
 `
 
 const MNEMO_BLOCK = `
@@ -119,9 +117,9 @@ function updateGitignore(cwd: string): void {
 function installSlashCommands(cwd: string): void {
   const commandsDir = join(cwd, '.claude', 'commands')
   mkdirSync(commandsDir, { recursive: true })
-  const dest = join(commandsDir, 'mnemo-url.md')
+  const dest = join(commandsDir, 'mnemo-add.md')
   if (!existsSync(dest)) {
-    writeFileSync(dest, MNEMO_URL_COMMAND)
+    writeFileSync(dest, MNEMO_ADD_COMMAND)
   }
 }
 
