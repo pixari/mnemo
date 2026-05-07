@@ -1,0 +1,65 @@
+{
+  "name": "mnemo",
+  "version": "0.1.0",
+  "description": "Persistent semantic knowledge base for Claude Code and AI-assisted development",
+  "keywords": [
+    "claude-code",
+    "ai",
+    "knowledge-base",
+    "developer-tools",
+    "semantic-search",
+    "context",
+    "memory"
+  ],
+  "homepage": "https://github.com/pixari/mnemo",
+  "bugs": {
+    "url": "https://github.com/pixari/mnemo/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pixari/mnemo.git"
+  },
+  "license": "MIT",
+  "author": "Raffaele Pizzari",
+  "type": "module",
+  "bin": {
+    "mnemo": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm --dts --clean",
+    "dev": "tsx src/cli.ts",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write src",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@xenova/transformers": "^2.17.2",
+    "better-sqlite3": "^9.6.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "nanoid": "^5.0.7",
+    "ora": "^8.1.0",
+    "vectordb": "^0.4.20"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "husky": "^9.0.11",
+    "prettier": "^3.3.2",
+    "tsup": "^8.1.0",
+    "tsx": "^4.15.7",
+    "typescript": "^5.5.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
