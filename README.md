@@ -2,7 +2,7 @@
 
 # mnemo
 
-**Semantic memory for Claude Code — built on plain files, not a black box.**
+**Semantic memory for Claude Code — plain files as source of truth, two indexes that can always be rebuilt.**
 
 [![npm version](https://img.shields.io/npm/v/mnemo)](https://www.npmjs.com/package/mnemo)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -16,20 +16,26 @@
 
 ---
 
-## The idea
+## The architecture
 
-Most "AI memory" tools store knowledge in a vector database and call it a day. The vector store becomes the source of truth — opaque, hard to inspect, easy to corrupt, impossible to version.
+Most memory tools make the vector database the source of truth. That means your knowledge is opaque, hard to inspect, and tied to the index. Corrupt the index, lose the data.
 
-mnemo takes the opposite approach, inspired by [Andrej Karpathy's llms.txt idea](https://karpathy.ai): **knowledge lives in plain markdown files**. The vector index is just a fast lookup layer built on top of them. If the index breaks, one command rebuilds it. The actual data is always human-readable, inspectable, and yours.
+mnemo separates the roles:
 
 ```
 .mnemo/
   knowledge/        ← plain .md files, one per item  ← source of truth
-  lancedb/          ← vector index built from knowledge/  ← disposable
-  mnemo.db          ← metadata (titles, tags, staleness)
+  lancedb/          ← vector index for semantic search  ← disposable, rebuilt from knowledge/
+  mnemo.db          ← SQLite: titles, tags, staleness, source URLs  ← also rebuilt
 ```
 
-Search is semantic. Storage is files. You never lose data to a corrupt index.
+**Plain files** hold the actual content. They're readable in any editor, diffable, portable.
+
+**LanceDB** is the semantic search layer — it turns natural-language queries into ranked results, but it holds no data that isn't already in the markdown files. `mnemo reindex` regenerates it completely in seconds.
+
+**SQLite** tracks queryable metadata: when an item was ingested, what URL it came from, what tags it has, how stale it is. It's what makes `mnemo list --stale-only` and `mnemo stale` fast without scanning every file. Like the vector index, it's derived — the files are always the authority.
+
+The result: you never lose knowledge to a broken index, and you can always read, edit, or move your data without any tooling.
 
 ---
 
@@ -55,7 +61,7 @@ mnemo init
 mnemo doctor
 ```
 
-`mnemo init` does three things: creates `.mnemo/`, appends a block to `CLAUDE.md` that instructs Claude to search and capture automatically, and adds `.mnemo/` to `.gitignore`.
+`mnemo init` creates `.mnemo/`, appends a block to `CLAUDE.md` that instructs Claude to search and capture automatically, and adds `.mnemo/` to `.gitignore`.
 
 The embedding model (~25 MB, `all-MiniLM-L6-v2`) downloads on first use. Everything runs locally — no API key, no cloud, no telemetry.
 
@@ -64,7 +70,7 @@ The embedding model (~25 MB, `all-MiniLM-L6-v2`) downloads on first use. Everyth
 ## Adding knowledge
 
 ```bash
-# The primary interface — plain text, distilled by you or Claude
+# Plain text — distilled by you or Claude
 mnemo add "decision: chose Zod for runtime validation — catches API drift at the boundary"
 mnemo add "constraint: never call the payments API from the frontend — CORS + key exposure"
 mnemo add "pattern: all DB queries go through repository classes in src/repositories/"
@@ -85,6 +91,30 @@ The `/mnemo-add` slash command is also installed in Claude Code — use it to ad
 
 ---
 
+## Staleness — keeping knowledge fresh
+
+Knowledge rots. An API changes, a pattern gets replaced, a decision gets revisited. mnemo tracks this explicitly.
+
+You can set a project-wide default or override it per item:
+
+```bash
+mnemo config set stale-days 60                                  # project default
+mnemo add https://docs.stripe.com/webhooks --stale-days 14      # override per item
+```
+
+SQLite records when the item was ingested and when it was last refreshed. After the threshold passes, `mnemo stale` surfaces it:
+
+```bash
+mnemo stale           # list everything past its threshold
+mnemo refresh <id>    # show the item and prompt you to update it
+```
+
+For text items added without a threshold, staleness is opt-in — you set it when you know the content will drift. For URLs it defaults to your project config (`mnemo config set stale-days 60`).
+
+This is why SQLite exists in the stack. The markdown files hold the content; SQLite holds the time-sensitive metadata that makes staleness queries fast without scanning every file on disk.
+
+---
+
 ## Searching
 
 ```bash
@@ -96,25 +126,12 @@ Results are ranked by semantic similarity. Each hit includes a relevance score a
 
 ---
 
-## Why plain files matter
-
-Every knowledge item is stored as a `.md` file in `.mnemo/knowledge/`. This means:
-
-- **Inspectable** — read any item with your editor, no tooling required
-- **Recoverable** — `mnemo reindex` rebuilds the entire vector index from the files in seconds
-- **Portable** — copy `knowledge/` to another machine and reindex; nothing is lost
-- **Trustworthy** — the source of truth is text, not a binary store you can't open
-
-This is the opposite of how most memory tools work. The vector index in mnemo is a cache, not the database.
-
----
-
 ## CLI reference
 
 ```
 mnemo init                        Initialize mnemo in the current project
 mnemo doctor                      Check mnemo health
-mnemo reindex                     Rebuild the vector index from knowledge files
+mnemo reindex                     Rebuild the vector index and metadata from knowledge files
 
 mnemo add <text|url>              Add a knowledge item
   --title <title>                 Override the title
@@ -158,7 +175,7 @@ your-project/
       added/               ← processed files move here
     knowledge/             ← one .md file per item (source of truth)
     lancedb/               ← vector index (rebuilt from knowledge/ if lost)
-    mnemo.db               ← SQLite metadata
+    mnemo.db               ← SQLite metadata (rebuilt from knowledge/ if lost)
     config.json            ← project config
   CLAUDE.md                ← commit this — it's how Claude knows to use mnemo
   .gitignore               ← updated by mnemo init
