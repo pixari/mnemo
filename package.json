@@ -1,6 +1,6 @@
 {
   "name": "mnemo",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Persistent semantic knowledge base for Claude Code and AI-assisted development",
   "keywords": [
     "claude-code",
