@@ -23,7 +23,7 @@
   "author": "Raffaele Pizzari",
   "type": "module",
   "bin": {
-    "mnemo": "./dist/cli.js"
+    "mnemo": "dist/cli.js"
   },
   "files": [
     "dist"
